@@ -13,6 +13,8 @@ Dalvik and ART support the JDWP, a protocol for communication between the debugg
 
 A JDWP debugger allows you to step through Java code, set breakpoints on Java methods, and inspect and modify local and instance variables. You'll use a JDWP debugger most of the time you debug "normal" Android apps (i.e., apps that don't make many calls to native libraries).
 
+If the app is not debuggable, you can make it appear debuggable at runtime by hooking Android framework code that reports the debuggable flag. This avoids patching and re-signing the APK. A framework such as @MASTG-TOOL-0027 can hook checks of the `FLAG_DEBUGGABLE` flag in `ApplicationInfo`. You can use a module such as @MASTG-TOOL-0141 to toggle the debuggable state so that JDWP can attach. This approach requires root and a hooking framework, and apps may detect it.
+
 In the following section, we'll show how to solve the @MASTG-APP-0003 with jdb alone. Note that this is not an _efficient_ way to solve this crackme. Actually, you can do it much faster with Frida and other methods, which we'll introduce later in the guide. This, however, serves as an introduction to the capabilities of the Java debugger.
 
 ## Debugging with jdb
