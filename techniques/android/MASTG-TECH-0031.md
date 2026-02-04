@@ -198,7 +198,9 @@ You can see the secret string in the "Variables" view when you reach the `String
 
 Native code on Android is packed into ELF shared libraries and runs just like any other native Linux program. Consequently, you can debug it with standard tools as long as they support the device's processor architecture (most devices are based on ARM chipsets, so this is usually not an issue).
 
-> Note: As stated in the official [Android docs](https://source.android.com/docs/core/tests/debug/gdb), GDB support is deprecated in favor of lldb (@MASTG-TOOL-0142).
+!!! warning
+
+    As stated in the official [Android docs](https://source.android.com/docs/core/tests/debug/gdb), GDB support is deprecated in favor of lldb (@MASTG-TOOL-0142).
 
 You'll now set up your JNI demo app, HelloWorld-JNI.apk, for debugging. It's the same APK you downloaded in "Statically Analyzing Native Code". Use `adb install` to install it on your device or on an emulator.
 
