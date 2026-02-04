@@ -196,7 +196,9 @@ You can see the secret string in the "Variables" view when you reach the `String
 
 ## Debugging Native Code
 
-Native code on Android is packed into ELF shared libraries and runs just like any other native Linux program. Consequently, you can debug it with standard tools (including GDB and built-in IDE debuggers such as IDA Pro) as long as they support the device's processor architecture (most devices are based on ARM chipsets, so this is usually not an issue).
+Native code on Android is packed into ELF shared libraries and runs just like any other native Linux program. Consequently, you can debug it with standard tools as long as they support the device's processor architecture (most devices are based on ARM chipsets, so this is usually not an issue).
+
+> Note: As stated in the official [Android docs](https://source.android.com/docs/core/tests/debug/gdb), GDB support is deprecated in favor of lldb (@MASTG-TOOL-0142).
 
 You'll now set up your JNI demo app, HelloWorld-JNI.apk, for debugging. It's the same APK you downloaded in "Statically Analyzing Native Code". Use `adb install` to install it on your device or on an emulator.
 
@@ -204,40 +206,29 @@ You'll now set up your JNI demo app, HelloWorld-JNI.apk, for debugging. It's the
 adb install HelloWorld-JNI.apk
 ```
 
-If you followed the instructions at the beginning of this chapter, you should already have the Android NDK. It contains prebuilt versions of gdbserver for various architectures. Copy the gdbserver binary to your device:
-
-```bash
-adb push $NDK/prebuilt/android-arm/gdbserver/gdbserver /data/local/tmp
-```
-
-The `gdbserver --attach` command causes gdbserver to attach to the running process and bind to the IP address and port specified in `comm`, which in this case is a HOST:PORT descriptor. Start HelloWorldJNI on the device, then connect to the device and determine the PID of the HelloWorldJNI process (sg.vantagepoint.helloworldjni). Then switch to the root user and attach `gdbserver`:
+If you followed the instructions at the beginning of this chapter, you should already have the Android NDK (@MASTG-TOOL-0005). It includes `lldb-server` for various architectures. Copy `lldb-server` to your device and attach it to the target process. Start HelloWorldJNI on the device, then connect to the device and determine the PID of the HelloWorldJNI process (sg.vantagepoint.helloworldjni). Then switch to the root user and start `lldb-server`:
 
 ```bash
 $ adb shell
 $ ps | grep helloworld
 u0_a164   12690 201   1533400 51692 ffffffff 00000000 S sg.vantagepoint.helloworldjni
 $ su
-# /data/local/tmp/gdbserver --attach localhost:1234 12690
-Attached; pid = 12690
-Listening on port 1234
+# /data/local/tmp/lldb-server p --server --listen 0.0.0.0:1234
 ```
 
-The process is now suspended, and `gdbserver` is listening for debugging clients on port `1234`. With the device connected via USB, you can forward this port to a local port on the host with the `adb forward` command:
+With the device connected via USB, forward the port to the host:
 
 ```bash
 adb forward tcp:1234 tcp:1234
 ```
 
-You'll now use the prebuilt version of `gdb` included in the NDK toolchain.
+From the host, connect with lldb:
 
 ```bash
-$ $TOOLCHAIN/bin/gdb libnative-lib.so
-GNU gdb (GDB) 7.11
-(...)
-Reading symbols from libnative-lib.so...(no debugging symbols found)...done.
-(gdb) target remote :1234
-Remote debugging using :1234
-0xb6e0f124 in ?? ()
+$ lldb
+(lldb) platform select remote-android
+(lldb) platform connect connect://localhost:1234
+(lldb) process attach -p 12690
 ```
 
 You have successfully attached to the process! The only problem is that you're already too late to debug the JNI function `StringFromJNI`; it only runs once, at startup. You can solve this problem by activating the "Wait for Debugger" option. Go to **Developer Options** -> **Select debug app** and pick HelloWorldJNI, then activate the **Wait for debugger** switch. Then, terminate and re-launch the app. It should be suspended automatically.
@@ -268,15 +259,12 @@ Step completed: "thread=main", sg.vantagepoint.helloworldjni.MainActivity.<clini
 main[1]
 ```
 
-Execute `gdbserver` to attach to the suspended app. This will cause the app to be suspended by both the Java VM and the Linux kernel (creating a state of "double-suspension").
+Execute `lldb-server` to attach to the suspended app. This will cause the app to be suspended by both the Java VM and the Linux kernel (creating a state of "double-suspension").
 
 ```bash
 $ adb forward tcp:1234 tcp:1234
-$ $TOOLCHAIN/arm-linux-androideabi-gdb libnative-lib.so
-GNU gdb (GDB) 7.7
-Copyright (C) 2014 Free Software Foundation, Inc.
-(...)
-(gdb) target remote :1234
-Remote debugging using :1234
-0xb6de83b8 in ?? ()
+$ lldb
+(lldb) platform select remote-android
+(lldb) platform connect connect://localhost:1234
+(lldb) process attach -p 12690
 ```
